@@ -1,8 +1,7 @@
-import os
 import re
-import time  # Add this import
 
 import openai
+import tiktoken
 from github import Github
 
 # Set up your GitHub token
@@ -34,18 +33,34 @@ get_files_recursive(repo, "")
 
 
 def analyze_code(code):
-    response = openai.Completion.create(
-        engine="code-davinci-002",
-        prompt=f"Analyze the following code snippet for inefficient code, code defects, and security vulnerabilities:\n\n{code}\n\nAnalysis:",
-        max_tokens=500,
-        n=1,
-        stop=None,
-        temperature=0.5,
-    )
+    max_prompt_tokens = 7000
+    max_tokens = 200
 
-    print(response['choices'])  # Updated
+    engine = "code-davinci-002"
 
-    return response.choices[0].text.strip()
+    def num_tokens_from_string(string: str) -> int:
+        """Returns the number of tokens in a text string."""
+        encoding = tiktoken.get_encoding("p50k_base")
+        num_tokens = len(encoding.encode(string))
+        return num_tokens
+
+    num_tokens = num_tokens_from_string(code)
+
+    if num_tokens < max_prompt_tokens:
+
+        response = openai.Completion.create(
+            engine=engine,
+            prompt=f"Analyze the following Python code snippet for efficiency, potential improvements, code defects, and security vulnerabilities. Please provide specific and actionable details, referencing function names, class names, or line numbers:\n\n{code}\n\nAnalysis:",
+            max_tokens=max_tokens,
+            n=1,
+            temperature=0.5,
+        )
+
+        print(response["choices"])
+
+        analysis = response.choices[0].text
+        return analysis.strip()
+    return ""
 
 
 def create_issue_summary(analysis):
@@ -58,23 +73,22 @@ def create_issue_summary(analysis):
             },
             {
                 "role": "user",
-                "content": f"Based on the following code analysis, provide a summary to create a GitHub issue:\n\n{analysis}\n\n",
+                "content": f"Based on the following code analysis, provide a summary to create a GitHub issue with an 'Issue Title' and a 'Description':\n\n{analysis}\n\n",
             },
         ],
-        max_tokens=150,
+        max_tokens=250,
         n=1,
         temperature=0.5,
     )
 
     print(response["choices"])
 
-    title = ""
-    description = ""
-    for message in response['choices'][0]['message']['content'].split("\n"):
-        if message.startswith("Title:"):
-            title = message.replace("Title:", "").strip()
-        elif message.startswith("Description:"):
-            description = message.replace("Description:", "").strip()
+    message_content = response["choices"][0]["message"]["content"].encode("utf-8").decode("utf-8")
+    title_search = re.search(r"Issue Title: (.+)", message_content)
+    description_search = re.search(r"Description: (.+)", message_content)
+
+    title = title_search.group(1) if title_search else ""
+    description = description_search.group(1) if description_search else ""
 
     return title, description
 
@@ -95,6 +109,12 @@ for file in files:
     code = file.decoded_content.decode("utf-8")
     analysis = analyze_code(code)
 
-    if analysis:
+    if "defect" in analysis.lower() or "improvement" in analysis.lower():
         issue_title, issue_description = create_issue_summary(analysis)
+
+        print(f"Issue title: {issue_title}")
+        print(f"Issue description: {issue_description}")
+
         create_github_issue(repo, issue_title, f"File: {file.path}\n\n{issue_description}\n\nAnalysis details:\n{analysis}")
+    else:
+        print("No defects found. No issue created.")
