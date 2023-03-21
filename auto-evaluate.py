@@ -33,10 +33,8 @@ get_files_recursive(repo, "")
 
 
 def analyze_code(code):
-    max_prompt_tokens = 7000
+    max_prompt_tokens = 2000
     max_tokens = 200
-
-    engine = "code-davinci-002"
 
     def num_tokens_from_string(string: str) -> int:
         """Returns the number of tokens in a text string."""
@@ -48,9 +46,18 @@ def analyze_code(code):
 
     if num_tokens < max_prompt_tokens:
 
-        response = openai.Completion.create(
-            engine=engine,
-            prompt=f"Analyze the following Python code snippet for efficiency, potential improvements, code defects, and security vulnerabilities. Please provide specific and actionable details, referencing function names, class names, or line numbers:\n\n{code}\n\nAnalysis:",
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an AI language model trained to help users with code analysis. Analyze the following Python code snippet for efficiency, potential improvements, code defects, and security vulnerabilities. Please provide specific and actionable details, referencing function names, class names, or line numbers:",
+                },
+                {
+                    "role": "user",
+                    "content": code
+                },
+            ],
             max_tokens=max_tokens,
             n=1,
             temperature=0.5,
