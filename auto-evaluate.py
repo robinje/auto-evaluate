@@ -20,6 +20,7 @@ files = []
 
 
 def get_files_recursive(repo, path):
+    """Get all files in a repository recursively."""
     contents = repo.get_contents(path)
 
     for content in contents:
@@ -33,6 +34,7 @@ get_files_recursive(repo, "")
 
 
 def analyze_code(code):
+    """Analyze the code using GPT-3.5-turbo and return the analysis."""
     max_prompt_tokens = 2000
     max_tokens = 200
 
@@ -44,51 +46,45 @@ def analyze_code(code):
 
     num_tokens = num_tokens_from_string(code)
 
-    if num_tokens < max_prompt_tokens:
+    if num_tokens >= max_prompt_tokens:
+        return "The code is too long to analyze."
 
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an AI language model trained to help users with code analysis. Analyze the following Python code snippet for efficiency, potential improvements, code defects, and security vulnerabilities. Please provide specific and actionable details, referencing function names, class names, or line numbers:",
-                },
-                {
-                    "role": "user",
-                    "content": code
-                },
-            ],
-            max_tokens=max_tokens,
-            n=1,
-            temperature=0.5,
-        )
-
-        print(response["choices"])
-
-        analysis = response.choices[0].text
-        return analysis.strip()
-    return ""
-
-
-def create_issue_summary(analysis):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
             {
                 "role": "system",
-                "content": "You are an AI language model trained to help users with code analysis and creating GitHub issues.",
+                "content": "You are a paranoid cybersecurity professional and expert software developer providing feedback on code changes that are filled with security vulnerabilities and coding errors.",
+            },
+            {"role": "user", "content": f"Review the following code: {code}",}
+        ],
+        max_tokens=max_tokens,
+        n=1,
+        temperature=0.5,
+    )
+
+    analysis = response.choices[0].message["content"].strip()
+    return analysis
+
+
+def create_issue_summary(analysis):
+    """Create a summary for the GitHub issue based on the analysis."""
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a paranoid cybersecurity professional and expert software developer trained to help users with code analysis and creating GitHub issues.",
             },
             {
                 "role": "user",
-                "content": f"Based on the following code analysis, provide a summary to create a GitHub issue with an 'Issue Title' and a 'Description':\n\n{analysis}\n\n",
+                "content": f"Based on the following code analysis, provide a summary to create a GitHub issue with an 'Issue Title' and a 'Description':\n\n{analysis}\n\n Please specify if the issue is a 'defect' or an 'improvement'.",
             },
         ],
         max_tokens=250,
         n=1,
         temperature=0.5,
     )
-
-    print(response["choices"])
 
     message_content = response["choices"][0]["message"]["content"].encode("utf-8").decode("utf-8")
     title_search = re.search(r"Issue Title: (.+)", message_content)
@@ -101,6 +97,7 @@ def create_issue_summary(analysis):
 
 
 def create_github_issue(repo, title, body):
+    """Create a GitHub issue with the given title and body."""
     repo.create_issue(title=title, body=body)
 
 
