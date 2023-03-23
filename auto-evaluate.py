@@ -35,8 +35,8 @@ get_files_recursive(repo, "")
 
 def analyze_code(code):
     """Analyze the code using GPT-3.5-turbo and return the analysis."""
-    max_prompt_tokens = 2000
-    max_tokens = 200
+    max_prompt_tokens = 3000
+    max_tokens = 1000
 
     def num_tokens_from_string(string: str) -> int:
         """Returns the number of tokens in a text string."""
@@ -49,19 +49,31 @@ def analyze_code(code):
     if num_tokens >= max_prompt_tokens:
         return "The code is too long to analyze."
 
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {
-                "role": "system",
-                "content": "You are a paranoid cybersecurity professional and expert software developer providing feedback on code changes that are filled with security vulnerabilities and coding errors.",
-            },
-            {"role": "user", "content": f"Review the following code: {code}",}
-        ],
-        max_tokens=max_tokens,
-        n=1,
-        temperature=0.5,
-    )
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a paranoid cybersecurity professional and expert software developer providing feedback on code changes that are filled with security vulnerabilities and coding errors.",
+                },
+                {"role": "user", "content": f"Review the following code: {code}",}
+            ],
+            max_tokens=max_tokens,
+            n=1,
+            temperature=0.4,
+        )
+    except openai.error.APIConnectionError as err:
+        print(f"OpenAI Connection Error: {err}")
+        return "OpenAI Connection Error"
+    
+    except openai.error.Timeout as err:
+        print(f"OpenAI Timeout Error: {err}")
+        return "OpenAI Timeout Error"
+
+    except openai.error.APIError as err:
+        print(f"OpenAI API Error: {err}")
+        return "OpenAI API Error"
 
     analysis = response.choices[0].message["content"].strip()
     return analysis
@@ -69,22 +81,34 @@ def analyze_code(code):
 
 def create_issue_summary(analysis):
     """Create a summary for the GitHub issue based on the analysis."""
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {
-                "role": "system",
-                "content": "You are a paranoid cybersecurity professional and expert software developer trained to help users with code analysis and creating GitHub issues.",
-            },
-            {
-                "role": "user",
-                "content": f"Based on the following code analysis, provide a summary to create a GitHub issue with an 'Issue Title' and a 'Description':\n\n{analysis}\n\n Please specify if the issue is a 'defect' or an 'improvement'.",
-            },
-        ],
-        max_tokens=250,
-        n=1,
-        temperature=0.5,
-    )
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a paranoid cybersecurity professional and expert software developer trained to help users with code analysis and creating GitHub issues.",
+                },
+                {
+                    "role": "user",
+                    "content": f"Based on the following code analysis, provide a summary to create a GitHub issue with an 'Issue Title' and a 'Description':\n\n{analysis}\n\n Please specify if the issue is a 'defect' or an 'improvement'. Do not provide any other information.",
+                },
+            ],
+            max_tokens=2000,
+            n=1,
+            temperature=0.4,
+        )
+    except openai.error.APIConnectionError as err:
+        print(f"OpenAI Connection Error: {err}")
+        return "", "OpenAI Connection Problem"
+
+    except openai.error.Timeout as err:
+        print(f"OpenAI Timeout Error: {err}")
+        return "", "OpenAI Timeout Problem"
+
+    except openai.error.APIError as err:
+        print(f"OpenAI API Error: {err}")
+        return "OpenAI API Error"
 
     message_content = response["choices"][0]["message"]["content"].encode("utf-8").decode("utf-8")
     title_search = re.search(r"Issue Title: (.+)", message_content)
@@ -104,13 +128,18 @@ def create_github_issue(repo, title, body):
 # Analyze each file and create GitHub issues
 for file in files:
 
-    # Skip files that are not Python source code
-    if not file.name.endswith(".py"):
-        continue
-
     print(file.name)
 
-    code = file.decoded_content.decode("utf-8")
+    try:
+        code = file.decoded_content.decode("utf-8")
+    except AssertionError as err:
+        print(f"Assertion Error: {err}")
+        continue
+
+    except UnicodeDecodeError as err:
+        print(f"Unicode Decode Error: {err}")
+        continue
+
     analysis = analyze_code(code)
 
     if "defect" in analysis.lower() or "improvement" in analysis.lower():
