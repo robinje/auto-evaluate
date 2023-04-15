@@ -55,7 +55,7 @@ def analyze_code(code):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a paranoid cybersecurity professional and expert software developer providing feedback on code changes that are filled with security vulnerabilities and coding errors.",
+                    "content": "You are a highly skilled AI language model, specifically trained to analyze and review source code. Your expertise includes code optimization, identifying potential improvements, detecting defects, and uncovering security vulnerabilities. Please examine the following source code thoroughly and provide specific, actionable feedback. When possible, include references to function names, class names, variable names, or line numbers to make your suggestions more concrete and easier to follow:",
                 },
                 {"role": "user", "content": f"Review the following code: {code}",}
             ],
@@ -87,7 +87,7 @@ def create_issue_summary(analysis):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a paranoid cybersecurity professional and expert software developer trained to help users with code analysis and creating GitHub issues.",
+                    "content": "You are an advanced AI language model with specialized knowledge in source code analysis and assisting developers in creating meaningful GitHub issues. Your expertise covers various aspects of software development, including code optimization, identifying potential improvements, detecting defects, and uncovering security vulnerabilities in source code. As an AI assistant, you are capable of understanding code analysis results and summarizing them into concise and informative GitHub issues. Your goal is to help developers address code-related concerns efficiently and effectively.",
                 },
                 {
                     "role": "user",
@@ -108,7 +108,7 @@ def create_issue_summary(analysis):
 
     except openai.error.APIError as err:
         print(f"OpenAI API Error: {err}")
-        return "OpenAI API Error"
+        return "", "OpenAI API Problem"
 
     message_content = response["choices"][0]["message"]["content"].encode("utf-8").decode("utf-8")
     title_search = re.search(r"Issue Title: (.+)", message_content)
