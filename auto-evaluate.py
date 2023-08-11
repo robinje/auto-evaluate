@@ -1,18 +1,32 @@
 import re
 
-import openai
-import tiktoken
-from github import Github
+import openai # type: ignore
+import tiktoken # type: ignore
+from github import Github # type: ignore
 
 # Set up your GitHub token
-github_token = ""
-# Set up your OpenAI API key
-openai.api_key = ""
+
+GITHUB_TOKEN = ""
 
 REPO_NAME = ""
 
+OPEN_AI_API_KEY = ""
+
+SMALL_GPT_MODEL = "gpt-4"
+
+LARGE_GPT_MODEL = "gpt-3.5-turbo-16k"
+
+SMALL_TOKENS = 8000
+
+LARGE_TOKENS = 16000
+
+
+# Set up your OpenAI API key
+openai.api_key = OPEN_AI_API_KEY
+
+
 # Authenticate and get the repository
-g = Github(github_token)
+g = Github(GITHUB_TOKEN)
 repo = g.get_repo(REPO_NAME)
 
 # Read the contents of the repository
@@ -21,22 +35,19 @@ files = []
 
 def get_files_recursive(repo, path):
     """Get all files in a repository recursively."""
+    files = []
     contents = repo.get_contents(path)
-
     for content in contents:
         if content.type == "dir":
-            get_files_recursive(repo, content.path)
+            files.extend(get_files_recursive(repo, content.path))
         else:
             files.append(content)
-
-
-get_files_recursive(repo, "")
-
+    return files
 
 def analyze_code(code):
     """Analyze the code using GPT-3.5-turbo and return the analysis."""
-    max_prompt_tokens = 3000
-    max_tokens = 1000
+    max_prompt_tokens = LARGE_TOKENS
+    max_tokens = SMALL_TOKENS
 
     def num_tokens_from_string(string: str) -> int:
         """Returns the number of tokens in a text string."""
@@ -51,7 +62,7 @@ def analyze_code(code):
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model=LARGE_GPT_MODEL,
             messages=[
                 {
                     "role": "system",
@@ -83,7 +94,7 @@ def create_issue_summary(analysis):
     """Create a summary for the GitHub issue based on the analysis."""
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model=SMALL_GPT_MODEL,
             messages=[
                 {
                     "role": "system",
@@ -117,7 +128,7 @@ def create_issue_summary(analysis):
     title = title_search.group(1) if title_search else ""
     description = description_search.group(1) if description_search else ""
 
-    return title, description
+    return title, description  # Simply return the title and description
 
 
 def create_github_issue(repo, title, body):
@@ -126,28 +137,22 @@ def create_github_issue(repo, title, body):
 
 
 # Analyze each file and create GitHub issues
+files = get_files_recursive(repo, "")
 for file in files:
-
-    print(file.name)
-
     try:
+        print(file.name)
         code = file.decoded_content.decode("utf-8")
-    except AssertionError as err:
-        print(f"Assertion Error: {err}")
+        analysis = analyze_code(code)
+
+        if "defect" in analysis.lower() or "improvement" in analysis.lower():
+            issue_title, issue_description = create_issue_summary(analysis)
+
+            print(f"Issue title: {issue_title}")
+            print(f"Issue description: {issue_description}")
+
+            create_github_issue(repo, issue_title, f"File: {file.path}\n\n{issue_description}\n\nAnalysis details:\n{analysis}")
+        else:
+            print("No defects found. No issue created.")
+    except Exception as err:
+        print(f"An error occurred while processing the file {file.name}: {err}")
         continue
-
-    except UnicodeDecodeError as err:
-        print(f"Unicode Decode Error: {err}")
-        continue
-
-    analysis = analyze_code(code)
-
-    if "defect" in analysis.lower() or "improvement" in analysis.lower():
-        issue_title, issue_description = create_issue_summary(analysis)
-
-        print(f"Issue title: {issue_title}")
-        print(f"Issue description: {issue_description}")
-
-        create_github_issue(repo, issue_title, f"File: {file.path}\n\n{issue_description}\n\nAnalysis details:\n{analysis}")
-    else:
-        print("No defects found. No issue created.")
