@@ -21,4 +21,10 @@ def repo_get_files(path=""):
 
 def repor_create_issue(title, body):
     """Create a GitHub issue with the given title and body."""
-    repo.create_issue(title=title, body=body)
+
+    print(f"Creating issue: {title}")
+
+    try:
+        repo.create_issue(title=title, body=body)
+    except Exception as err:
+        print(f"An error occurred while creating the issue: {err}")

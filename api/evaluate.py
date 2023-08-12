@@ -3,7 +3,7 @@ import re
 import tiktoken  # type: ignore
 import openai  # type: ignore
 
-from api.constants import SMALL_GPT_MODEL, SMALL_TOKENS, LARGE_GPT_MODEL, LARGE_TOKENS, PERSONALITY, OPEN_AI_API_KEY
+from api.constants import SMALL_GPT_MODEL, SMALL_TOKENS, LARGE_GPT_MODEL, LARGE_TOKENS, PERSONALITY, OPEN_AI_API_KEY, SUMMARY_PERSONALITY
 
 # Set up your OpenAI API key
 openai.api_key = OPEN_AI_API_KEY
@@ -110,14 +110,14 @@ def evaluate_summary(analysis):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an advanced AI language model with specialized knowledge in source code analysis and assisting developers in creating meaningful GitHub issues. Your expertise covers various aspects of software development, including code optimization, identifying potential improvements, detecting defects, and uncovering security vulnerabilities in source code. As an AI assistant, you are capable of understanding code analysis results and summarizing them into concise and informative GitHub issues. Your goal is to help developers address code-related concerns efficiently and effectively.",
+                    "content": SUMMARY_PERSONALITY,
                 },
                 {
                     "role": "user",
                     "content": f"Based on the following code analysis, provide a summary to create a GitHub issue with an 'Issue Title' and a 'Description':\n\n{analysis}\n\n Please specify if the issue is a 'defect' or an 'improvement'. Do not provide any other information.",
                 },
             ],
-            max_tokens=2000,
+            max_tokens=7000,
             n=1,
             temperature=0.4,
         )
