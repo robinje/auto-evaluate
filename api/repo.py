@@ -6,7 +6,8 @@ from api.constants import GITHUB_TOKEN, REPO_NAME
 g = Github(GITHUB_TOKEN)
 repo = g.get_repo(REPO_NAME)
 
-def repo_get_files(path = ""):
+
+def repo_get_files(path=""):
     """Get all files in a repository recursively."""
     files = []
     contents = repo.get_contents(path)
@@ -16,6 +17,7 @@ def repo_get_files(path = ""):
         else:
             files.append(content)
     return files
+
 
 def repor_create_issue(title, body):
     """Create a GitHub issue with the given title and body."""

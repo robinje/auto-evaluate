@@ -8,6 +8,7 @@ from api.constants import SMALL_GPT_MODEL, SMALL_TOKENS, LARGE_GPT_MODEL, LARGE_
 # Set up your OpenAI API key
 openai.api_key = OPEN_AI_API_KEY
 
+
 def num_tokens_from_string(string: str) -> int:
     """Returns the number of tokens in a text string."""
     encoding = tiktoken.get_encoding("cl100k_base")
@@ -35,7 +36,7 @@ def evaluate_module(code: str):
                 },
                 {
                     "role": "user",
-                    "content": f"Review the following code: {code}",
+                    "content": f"Review the following code: \n{code}",
                 },
             ],
             max_tokens=max_tokens,
@@ -99,6 +100,7 @@ def evaluate_function(code: str):
 
     analysis = response.choices[0].message["content"].strip()
     return analysis
+
 
 def evaluate_summary(analysis):
     """Create a summary for the GitHub issue based on the analysis."""
