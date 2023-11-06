@@ -6,7 +6,8 @@ import openai  # type: ignore
 from api.constants import SMALL_GPT_MODEL, SMALL_TOKENS, LARGE_GPT_MODEL, LARGE_TOKENS, PERSONALITY, OPEN_AI_API_KEY, SUMMARY_PERSONALITY
 
 # Set up your OpenAI API key
-openai.api_key = OPEN_AI_API_KEY
+
+client = openai.OpenAI(api_key=OPEN_AI_API_KEY)
 
 
 def num_tokens_from_string(string: str) -> int:
@@ -27,7 +28,7 @@ def evaluate_module(code: str):
         return "The code is too long to analyze."
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model=LARGE_GPT_MODEL,
             messages=[
                 {
@@ -43,15 +44,8 @@ def evaluate_module(code: str):
             n=1,
             temperature=0.4,
         )
-    except openai.error.APIConnectionError as err:
-        print(f"OpenAI Connection Error: {err}")
-        return "OpenAI Connection Error"
 
-    except openai.error.Timeout as err:
-        print(f"OpenAI Timeout Error: {err}")
-        return "OpenAI Timeout Error"
-
-    except openai.error.APIError as err:
+    except openai.APIError as err:
         print(f"OpenAI API Error: {err}")
         return "OpenAI API Error"
 
@@ -70,7 +64,7 @@ def evaluate_function(code: str):
         return "The code is too long to analyze."
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model=SMALL_GPT_MODEL,
             messages=[
                 {
@@ -86,15 +80,8 @@ def evaluate_function(code: str):
             n=1,
             temperature=0.4,
         )
-    except openai.error.APIConnectionError as err:
-        print(f"OpenAI Connection Error: {err}")
-        return "OpenAI Connection Error"
 
-    except openai.error.Timeout as err:
-        print(f"OpenAI Timeout Error: {err}")
-        return "OpenAI Timeout Error"
-
-    except openai.error.APIError as err:
+    except openai.APIError as err:
         print(f"OpenAI API Error: {err}")
         return "OpenAI API Error"
 
@@ -121,15 +108,7 @@ def evaluate_summary(analysis):
             n=1,
             temperature=0.4,
         )
-    except openai.error.APIConnectionError as err:
-        print(f"OpenAI Connection Error: {err}")
-        return "", "OpenAI Connection Problem"
-
-    except openai.error.Timeout as err:
-        print(f"OpenAI Timeout Error: {err}")
-        return "", "OpenAI Timeout Problem"
-
-    except openai.error.APIError as err:
+    except openai.APIError as err:
         print(f"OpenAI API Error: {err}")
         return "", "OpenAI API Problem"
 
