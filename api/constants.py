@@ -2,10 +2,13 @@
 Constants used in the Auto Evalation Application
 """
 
+# A GitHub token is required to access the GitHub API.
 GITHUB_TOKEN = ""
 
+# Get the name of the repository
 REPO_NAME = ""
 
+# This is the API key for the OpenAI API.
 OPEN_AI_API_KEY = ""
 
 SMALL_GPT_MODEL = "gpt-4"
